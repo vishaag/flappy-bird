@@ -797,59 +797,84 @@ function drawScore() {
 // ─── Start screen ─────────────────────────────────────────────────────────────
 function drawStartScreen() {
   ctx.save();
-  const panelX=30,panelY=28,panelW=W-60,panelH=100;
-  ctx.fillStyle='rgba(0,0,0,0.25)'; rr(panelX+4,panelY+4,panelW,panelH,18); ctx.fill();
-  const pg=ctx.createLinearGradient(0,panelY,0,panelY+panelH);
-  pg.addColorStop(0,'rgba(10,30,60,0.82)'); pg.addColorStop(1,'rgba(5,15,40,0.82)');
-  ctx.fillStyle=pg; rr(panelX,panelY,panelW,panelH,18); ctx.fill();
-  ctx.strokeStyle='rgba(255,220,80,0.35)'; ctx.lineWidth=1.5; rr(panelX,panelY,panelW,panelH,18); ctx.stroke();
-  ctx.strokeStyle='rgba(255,220,80,0.6)'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(panelX+20,panelY+1); ctx.lineTo(panelX+panelW-20,panelY+1); ctx.stroke();
-  strokeText('FLAPPY BIRD',W/2,panelY+56,40,'#FFD600','rgba(0,0,0,0.6)',7);
-  ctx.font='13px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,220,120,0.7)';
-  ctx.fillText('SPACE / ↑  to fly  ·  X / F  to shoot',W/2,panelY+80);
 
-  // Bullets info panel
-  const bpY=H-GROUND_H-192;
-  ctx.fillStyle='rgba(0,0,0,0.22)'; rr(30,bpY,W-60,56,12); ctx.fill();
-  ctx.strokeStyle='rgba(255,140,0,0.2)'; ctx.lineWidth=1; rr(30,bpY,W-60,56,12); ctx.stroke();
-  ctx.font='10px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,200,100,0.75)';
-  ctx.fillText('🔫  START WITH 3 BULLETS  ·  EARN 1 EVERY 5 PIPES', W/2, bpY+18);
-  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='10px "Segoe UI",Arial,sans-serif';
-  ctx.fillText('Desktop: X or F key  ·  Mobile: tap 🔥 button', W/2, bpY+36);
-  // Bullet dots preview
+  // ── Title panel (top) ────────────────────────────────────────────────────
+  const tpX=30,tpY=22,tpW=W-60,tpH=92;
+  ctx.fillStyle='rgba(0,0,0,0.25)'; rr(tpX+4,tpY+4,tpW,tpH,18); ctx.fill();
+  const pg=ctx.createLinearGradient(0,tpY,0,tpY+tpH);
+  pg.addColorStop(0,'rgba(10,30,60,0.82)'); pg.addColorStop(1,'rgba(5,15,40,0.82)');
+  ctx.fillStyle=pg; rr(tpX,tpY,tpW,tpH,18); ctx.fill();
+  ctx.strokeStyle='rgba(255,220,80,0.4)'; ctx.lineWidth=1.5; rr(tpX,tpY,tpW,tpH,18); ctx.stroke();
+  strokeText('FLAPPY BIRD',W/2,tpY+52,40,'#FFD600','rgba(0,0,0,0.6)',7);
+  ctx.font='12px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,220,120,0.65)';
+  ctx.fillText('SPACE / ↑  to fly  ·  X / F  to shoot',W/2,tpY+76);
+
+  // ── Bottom info card (single panel, no overlaps) ─────────────────────────
+  // card spans from cardY to ground-28 (leaves room for tap text)
+  const cardY = H-GROUND_H-220, cardH=192, cardX=30, cardW=W-60;
+  ctx.fillStyle='rgba(0,0,0,0.28)'; rr(cardX+4,cardY+4,cardW,cardH,16); ctx.fill();
+  const cg=ctx.createLinearGradient(0,cardY,0,cardY+cardH);
+  cg.addColorStop(0,'rgba(8,18,40,0.85)'); cg.addColorStop(1,'rgba(4,10,24,0.85)');
+  ctx.fillStyle=cg; rr(cardX,cardY,cardW,cardH,16); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; rr(cardX,cardY,cardW,cardH,16); ctx.stroke();
+
+  let cy = cardY + 20;
+
+  // Best score row
+  if(bestScore>0) {
+    ctx.font='bold 15px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,215,0,0.9)';
+    ctx.fillText('👑  BEST: '+bestScore, W/2, cy);
+    cy += 18;
+    // divider
+    ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cardX+20,cy); ctx.lineTo(cardX+cardW-20,cy); ctx.stroke();
+    cy += 14;
+  }
+
+  // Bullets section
+  ctx.font='bold 11px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,190,80,0.85)';
+  ctx.fillText('🔫  3 BULLETS TO START  ·  +1 EVERY 5 PIPES', W/2, cy);
+  cy += 17;
+  ctx.font='11px "Segoe UI",Arial,sans-serif';
+  ctx.fillStyle='rgba(200,220,255,0.6)';
+  ctx.fillText('Desktop: X or F  ·  Mobile: tap 🔥 button', W/2, cy);
+  cy += 14;
+  // bullet dots
   for(let i=0;i<3;i++) {
-    ctx.beginPath(); ctx.arc(W/2-16+i*16,bpY+50,5,0,Math.PI*2);
-    ctx.fillStyle='#FF8C00'; ctx.shadowBlur=5; ctx.shadowColor='rgba(255,140,0,0.7)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(W/2-16+i*16, cy+2, 5, 0, Math.PI*2);
+    ctx.fillStyle='#FF8C00'; ctx.shadowBlur=6; ctx.shadowColor='rgba(255,140,0,0.8)'; ctx.fill();
   }
   ctx.shadowBlur=0;
+  cy += 18;
 
-  // Enemies legend
-  const legendY=H-GROUND_H-124;
-  ctx.fillStyle='rgba(0,0,0,0.22)'; rr(30,legendY,W-60,76,14); ctx.fill();
-  ctx.strokeStyle='rgba(255,80,80,0.15)'; ctx.lineWidth=1; rr(30,legendY,W-60,76,14); ctx.stroke();
-  ctx.font='9px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,180,180,0.65)';
-  ctx.fillText('SHOOT ENEMIES TO SURVIVE',W/2,legendY+14);
-  ctx.font='11px "Segoe UI",Arial,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
-  ctx.fillText('🦇 Bat',W/2-90,legendY+46); ctx.fillText('👻 Ghost',W/2,legendY+46); ctx.fillText('💀 Skull',W/2+90,legendY+46);
-  ctx.font='9px "Segoe UI",Arial,sans-serif'; ctx.fillStyle='rgba(255,200,150,0.5)';
-  ctx.fillText('score 3+',W/2-90,legendY+60); ctx.fillText('score 8+',W/2,legendY+60); ctx.fillText('score 16+',W/2+90,legendY+60);
+  // divider
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(cardX+20,cy); ctx.lineTo(cardX+cardW-20,cy); ctx.stroke();
+  cy += 14;
 
-  if(bestScore>0) {
-    const bx=W/2,by=H-GROUND_H-148,bw=150,bh=44;
-    // Overlaps? Reposition above legend
-    // Just show inline in legend
-  }
+  // Enemies section
+  ctx.font='bold 10px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,160,160,0.75)';
+  ctx.fillText('SHOOT ENEMIES TO SURVIVE', W/2, cy);
+  cy += 22;
+  ctx.font='12px "Segoe UI",Arial,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.fillText('🦇  Bat', W/2-95, cy);
+  ctx.fillText('👻  Ghost', W/2, cy);
+  ctx.fillText('💀  Skull', W/2+95, cy);
+  cy += 16;
+  ctx.font='10px "Segoe UI",Arial,sans-serif'; ctx.fillStyle='rgba(255,190,130,0.55)';
+  ctx.fillText('score 3+', W/2-95, cy);
+  ctx.fillText('score 8+', W/2, cy);
+  ctx.fillText('score 16+', W/2+95, cy);
 
-  // Best score (small, above legend)
-  if(bestScore>0) {
-    ctx.font='bold 12px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
-    ctx.fillStyle='rgba(255,215,0,0.7)'; ctx.fillText('👑 BEST: '+bestScore,W/2,legendY-8);
-  }
-
-  const pulse=0.6+0.4*Math.sin(Date.now()/480);
-  ctx.globalAlpha=pulse; ctx.font='14px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
-  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fillText('▼  tap anywhere to start  ▼',W/2,H-GROUND_H-14);
+  // ── Tap to start ─────────────────────────────────────────────────────────
+  const pulse=0.55+0.45*Math.sin(Date.now()/480);
+  ctx.globalAlpha=pulse; ctx.font='bold 14px "Segoe UI",Arial,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,0.9)';
+  ctx.fillText('▼  tap anywhere to start  ▼', W/2, H-GROUND_H-10);
   ctx.restore();
 }
 
