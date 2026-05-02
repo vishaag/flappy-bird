@@ -645,21 +645,43 @@ function drawBird() {
   ctx.beginPath(); ctx.ellipse(33.5, 1.5, 1.5, 1, -0.3, 0, Math.PI*2);
   ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.fill();
 
-  // ── Tongue — big, pink, flopping out to the side ─────────────────────────
-  const tongBob = Math.sin(T/300)*1.5;
+  // ── Smile / mouth line ────────────────────────────────────────────────────
   ctx.beginPath();
-  ctx.moveTo(28, 13);
-  ctx.bezierCurveTo(26,16,20,20+tongBob,23,26+tongBob);
-  ctx.bezierCurveTo(26,30+tongBob,32,28+tongBob,32,22+tongBob);
-  ctx.bezierCurveTo(32,18,30,14,28,13);
-  ctx.closePath();
-  ctx.fillStyle=TONGUE; ctx.fill();
-  // tongue center crease
-  ctx.beginPath(); ctx.moveTo(28,14); ctx.bezierCurveTo(28,19,27,23,26,26+tongBob);
-  ctx.strokeStyle='rgba(160,40,60,0.45)'; ctx.lineWidth=1.2; ctx.stroke();
-  // tongue highlight
-  ctx.beginPath(); ctx.ellipse(30,18+tongBob*0.5,3,2,-0.3,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,180,190,0.3)'; ctx.fill();
+  ctx.moveTo(19, 11); ctx.quadraticCurveTo(27, 15.5, 35, 10);
+  ctx.strokeStyle='rgba(12,4,1,0.55)'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+
+  // ── Panting tongue animation ──────────────────────────────────────────────
+  // 2.8s cycle: tongue fully out for ~1s, rest for ~1.8s
+  const PANT = 2800;
+  const pantT = (T % PANT) / PANT;
+  const tongOut = pantT < 0.36 ? Math.sin(pantT / 0.36 * Math.PI) : 0;
+
+  if(tongOut > 0.03) {
+    ctx.save();
+    // root at right corner of mouth
+    ctx.translate(33, 12);
+    const ext = tongOut * 11;
+    const flap = Math.sin(T / 85) * 2 * tongOut;
+
+    // tongue shape — wide flat paddle
+    ctx.beginPath();
+    ctx.moveTo(-5.5, 0);
+    ctx.bezierCurveTo(-6.5, ext*0.5+flap, -4, ext+flap, 0, ext+flap);
+    ctx.bezierCurveTo(4, ext+flap, 6.5, ext*0.5+flap, 5.5, 0);
+    ctx.closePath();
+    const tg = ctx.createLinearGradient(0, 0, 0, ext);
+    tg.addColorStop(0,'#e8809a'); tg.addColorStop(1,'#bf3d60');
+    ctx.fillStyle=tg; ctx.fill();
+
+    // center crease
+    ctx.beginPath(); ctx.moveTo(0, 1); ctx.lineTo(0, ext*0.8+flap);
+    ctx.strokeStyle='rgba(150,35,55,0.45)'; ctx.lineWidth=1; ctx.stroke();
+
+    // highlight shimmer
+    ctx.beginPath(); ctx.ellipse(-2, ext*0.35, 2.5, 1.8*tongOut, -0.1, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,215,225,0.38)'; ctx.fill();
+    ctx.restore();
+  }
 
   // ── Eye — warm amber, kind lab expression ────────────────────────────────
   ctx.beginPath(); ctx.ellipse(15, -11, 6, 5.5, -0.1, 0, Math.PI*2);
