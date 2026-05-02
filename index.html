@@ -513,127 +513,132 @@ function drawBird() {
   ctx.save(); ctx.translate(BIRD_X, bird.y); ctx.rotate(bird.rot);
   const T = Date.now();
 
-  // chocolate lab palette
-  const C1 = '#200d04';  // darkest shadow
-  const C2 = '#3d1a08';  // main body
-  const C3 = '#5c2a10';  // mid
-  const C4 = '#7a3d18';  // warm highlight
-  const C5 = '#9a5228';  // lightest (forehead, top of head)
-  const NOSE = '#080302';
-  const AMBER = '#7B4F10';
+  const C1='#1e0c04', C2='#3b1807', C3='#5a2810', C4='#7a3d1a', C5='#9a5226';
+  const NOSE='#07020e', AMBER='#7a4f0e';
 
-  // helper: draw a leg as upper+lower segment with paw
-  function leg(x1,y1, kx,ky, px,py, col) {
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(kx,ky); ctx.lineTo(px,py);
-    ctx.strokeStyle=col; ctx.lineWidth=5.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(px,py,5,3.5,Math.atan2(py-ky,px-kx),0,Math.PI*2);
-    ctx.fillStyle=C2; ctx.fill();
+  // draw one leg: hip→knee→paw, with a paw ellipse at end
+  function drawLeg(hx,hy, kx,ky, px,py, w, shade) {
+    ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(kx,ky); ctx.lineTo(px,py);
+    ctx.strokeStyle=shade; ctx.lineWidth=w; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(px,py,w*0.8,w*0.55,Math.atan2(py-ky,px-kx)+0.4,0,Math.PI*2);
+    ctx.fillStyle=shade; ctx.fill();
   }
 
-  // ── Cape ─────────────────────────────────────────────────────────────────
-  const cw = Math.sin(T/160)*5;
+  // ── Superman scarf (behind everything) ───────────────────────────────────
+  const cw=Math.sin(T/165)*5;
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(-2,-8);
-  ctx.bezierCurveTo(-10,-6,-26,-2+cw*0.4,-36,2+cw);
-  ctx.bezierCurveTo(-32,16+cw*0.7,-12,20,-1,10);
+  ctx.moveTo(-3,-6);
+  ctx.bezierCurveTo(-12,-4,-28,-1+cw*0.4,-38,3+cw);
+  ctx.bezierCurveTo(-34,15+cw*0.7,-14,18,-2,9);
   ctx.closePath();
-  const cg=ctx.createLinearGradient(-36,0,-2,0);
-  cg.addColorStop(0,'#6d0000'); cg.addColorStop(0.5,'#c62828'); cg.addColorStop(1,'#e53935');
+  const cg=ctx.createLinearGradient(-38,3,-3,-6);
+  cg.addColorStop(0,'#5c0000'); cg.addColorStop(0.5,'#c62828'); cg.addColorStop(1,'#ef5350');
   ctx.fillStyle=cg; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-2,-6); ctx.bezierCurveTo(-12,-4,-28,0+cw*0.4,-34,3+cw);
-  ctx.strokeStyle='rgba(255,90,90,0.25)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3,-4); ctx.bezierCurveTo(-14,-2,-30,2+cw*0.4,-36,4+cw);
+  ctx.strokeStyle='rgba(255,100,100,0.28)'; ctx.lineWidth=2; ctx.stroke();
   ctx.restore();
 
-  // ── Back legs (bent, trailing) ────────────────────────────────────────────
-  leg(-5, 6,  -14,18,  -20,14,  C1);   // far back leg
-  leg(-3, 8,  -12,20,  -18,16,  C2);   // near back leg (slightly lighter)
+  // ── Far (shadow) legs — drawn behind body ─────────────────────────────────
+  // far back leg: hip at rear of body, knee back+down, paw further back+down
+  drawLeg(-7,4, -12,14, -20,20, 5, C1);
+  // far front leg: hip at chest, knee forward+down, paw out front
+  drawLeg(8,5,  16,14,  24,20,  5, C1);
 
-  // ── Body — compact, round, clearly a dog not a seal ──────────────────────
-  ctx.beginPath(); ctx.ellipse(0, 2, 13, 11, 0, 0, Math.PI*2);
-  const bg=ctx.createRadialGradient(-3,-4,1,0,2,14);
-  bg.addColorStop(0,C4); bg.addColorStop(0.55,C3); bg.addColorStop(1,C1);
+  // ── Body — round, stocky lab torso ───────────────────────────────────────
+  ctx.beginPath(); ctx.ellipse(0,2,14,10,0,0,Math.PI*2);
+  const bg=ctx.createRadialGradient(-3,-3,1,0,2,15);
+  bg.addColorStop(0,C5); bg.addColorStop(0.4,C4); bg.addColorStop(0.75,C3); bg.addColorStop(1,C1);
   ctx.fillStyle=bg; ctx.fill();
 
-  // chest puff (front of body, connects to neck naturally)
-  ctx.beginPath(); ctx.ellipse(8,4,7,8,0.3,0,Math.PI*2);
-  const chg=ctx.createRadialGradient(6,0,1,8,4,8);
-  chg.addColorStop(0,C4); chg.addColorStop(1,C2);
-  ctx.fillStyle=chg; ctx.fill();
+  // ── Wagging tail ──────────────────────────────────────────────────────────
+  const tw=Math.sin(T/130)*10;
+  ctx.save(); ctx.translate(-13,0);
+  ctx.beginPath(); ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-5,-5,-10,-12+tw,-8,-18+tw);
+  ctx.strokeStyle=C3; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(-8,-18+tw,4.5,0,Math.PI*2);
+  ctx.fillStyle=C4; ctx.fill();
+  ctx.restore();
 
-  // ── Front legs stretched forward (Superman pose) ──────────────────────────
-  leg(6,10,  18,16,  28,12,  C1);   // far front leg
-  leg(8,10,  20,14,  30,10,  C3);   // near front leg (lighter)
+  // ── Near (front) legs — drawn in front of body ────────────────────────────
+  // near back leg: slightly in front of far one, slightly lighter
+  drawLeg(-5,6, -9,16, -16,22, 5.5, C3);
+  // near front leg
+  drawLeg(10,5, 18,15, 26,21, 5.5, C3);
 
   // ── Neck ──────────────────────────────────────────────────────────────────
   ctx.beginPath();
-  ctx.moveTo(7,-1); ctx.bezierCurveTo(9,-12,20,-14,22,-5);
-  ctx.bezierCurveTo(22,4,18,10,12,9); ctx.bezierCurveTo(7,8,5,5,7,-1);
+  ctx.moveTo(8,0); ctx.bezierCurveTo(9,-11,20,-13,21,-4);
+  ctx.bezierCurveTo(21,4,17,8,11,8); ctx.bezierCurveTo(7,8,6,4,8,0);
   ctx.closePath();
-  const ng=ctx.createLinearGradient(7,-14,22,10);
-  ng.addColorStop(0,C4); ng.addColorStop(1,C2);
+  const ng=ctx.createLinearGradient(8,-13,21,8);
+  ng.addColorStop(0,C5); ng.addColorStop(1,C2);
   ctx.fillStyle=ng; ctx.fill();
 
-  // ── Ear — floppy, blown back by wind ──────────────────────────────────────
-  const ef=Math.sin(T/200)*4;
-  ctx.save(); ctx.translate(12,-12);
-  ctx.beginPath();
-  ctx.moveTo(0,0);
-  ctx.bezierCurveTo(-1,5,-10,10+ef,-13,20+ef);
-  ctx.bezierCurveTo(-11,26+ef,-4,24+ef,0,15);
-  ctx.bezierCurveTo(2,8,3,3,2,0);
-  ctx.closePath();
-  ctx.fillStyle=C1; ctx.fill();
-  // inner ear warmth
-  ctx.beginPath();
-  ctx.moveTo(0,2); ctx.bezierCurveTo(-1,7,-7,12+ef,-9,19+ef);
-  ctx.bezierCurveTo(-8,23+ef,-4,21+ef,-1,14); ctx.bezierCurveTo(1,8,1,4,0,2);
-  ctx.closePath(); ctx.fillStyle='rgba(75,28,8,0.5)'; ctx.fill();
-  ctx.restore();
-
-  // ── Head — big, broad, blocky Lab skull ───────────────────────────────────
-  ctx.beginPath(); ctx.ellipse(14,-8,15,13,0,0,Math.PI*2);
-  const hg=ctx.createRadialGradient(9,-14,2,14,-8,16);
-  hg.addColorStop(0,C5); hg.addColorStop(0.38,C4);
-  hg.addColorStop(0.72,C3); hg.addColorStop(1,C1);
+  // ── Head — big, round, broad lab skull ───────────────────────────────────
+  ctx.beginPath(); ctx.ellipse(15,-8,14,12,0,0,Math.PI*2);
+  const hg=ctx.createRadialGradient(10,-14,2,15,-8,15);
+  hg.addColorStop(0,C5); hg.addColorStop(0.35,C4); hg.addColorStop(0.7,C3); hg.addColorStop(1,C1);
   ctx.fillStyle=hg; ctx.fill();
 
-  // ── Muzzle — broad square Lab muzzle ──────────────────────────────────────
-  // the muzzle on a lab is wide and somewhat squared-off, not pointed
+  // ── Ears — upright & alert, not floppy (like the ref photo) ──────────────
+  // far ear (behind head, darker)
+  ctx.save(); ctx.translate(10,-16);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-3,-11); ctx.lineTo(5,-9); ctx.closePath();
+  ctx.fillStyle=C1; ctx.fill();
+  ctx.restore();
+  // near ear (forward, with inner pink)
+  const ef=Math.sin(T/250)*1.2;
+  ctx.save(); ctx.translate(19,-17);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-1,-13+ef); ctx.lineTo(7,-10); ctx.closePath();
+  const earG=ctx.createLinearGradient(0,0,3,-13);
+  earG.addColorStop(0,C2); earG.addColorStop(1,C4);
+  ctx.fillStyle=earG; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,-9+ef); ctx.lineTo(5,-8); ctx.closePath();
+  ctx.fillStyle='rgba(190,90,70,0.38)'; ctx.fill();
+  ctx.restore();
+
+  // ── Muzzle — wide, squared-off lab snout ─────────────────────────────────
   ctx.beginPath();
-  ctx.moveTo(20,-2); ctx.bezierCurveTo(28,-4,36,-2,37,3);
-  ctx.bezierCurveTo(38,8,36,13,30,13);
-  ctx.lineTo(19,13); ctx.bezierCurveTo(16,13,15,9,15,6);
-  ctx.bezierCurveTo(15,2,17,-1,20,-2);
+  ctx.moveTo(20,-1); ctx.bezierCurveTo(28,-4,36,-1,37,4);
+  ctx.bezierCurveTo(37,10,34,13,28,13); ctx.lineTo(19,13);
+  ctx.bezierCurveTo(16,13,15,10,15,6); ctx.bezierCurveTo(15,2,17,0,20,-1);
   ctx.closePath();
-  const mg=ctx.createRadialGradient(22,-2,1,26,6,14);
+  const mg=ctx.createRadialGradient(22,-1,1,26,6,13);
   mg.addColorStop(0,C4); mg.addColorStop(1,C2);
   ctx.fillStyle=mg; ctx.fill();
-  // muzzle top ridge
-  ctx.beginPath(); ctx.ellipse(26,-2,10,3.5,0,0,Math.PI*2);
-  ctx.fillStyle=C3; ctx.fill();
+  // top ridge
+  ctx.beginPath(); ctx.ellipse(25,-2,9,3.5,0.1,0,Math.PI*2);
+  ctx.fillStyle=C4; ctx.fill();
 
-  // ── Nose ──────────────────────────────────────────────────────────────────
-  ctx.beginPath(); ctx.ellipse(34,2,4.5,3.8,0,0,Math.PI*2);
+  // ── Nose ─────────────────────────────────────────────────────────────────
+  ctx.beginPath(); ctx.ellipse(34,2,4.2,3.5,0,0,Math.PI*2);
   ctx.fillStyle=NOSE; ctx.fill();
-  ctx.beginPath(); ctx.ellipse(32.5,0.8,1.4,0.9,-0.3,0,Math.PI*2);
+  ctx.beginPath(); ctx.ellipse(32.5,0.8,1.3,0.8,-0.3,0,Math.PI*2);
   ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fill();
 
-  // ── Mouth line ────────────────────────────────────────────────────────────
+  // ── Collar + tag ──────────────────────────────────────────────────────────
+  ctx.beginPath(); ctx.moveTo(10,4); ctx.bezierCurveTo(13,-1,21,-2,22,3);
+  ctx.strokeStyle='#5c1a1a'; ctx.lineWidth=4; ctx.lineCap='butt'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(16,3.5,3,0,Math.PI*2);
+  ctx.fillStyle='#c8a820'; ctx.fill();
+  ctx.beginPath(); ctx.arc(16,3.5,1,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,240,100,0.5)'; ctx.fill();
+
+  // ── Mouth ────────────────────────────────────────────────────────────────
   ctx.beginPath(); ctx.moveTo(20,11); ctx.quadraticCurveTo(27,15,34,10);
   ctx.strokeStyle='rgba(10,3,1,0.5)'; ctx.lineWidth=1.8; ctx.lineCap='round'; ctx.stroke();
 
-  // ── Panting tongue (2.8s cycle, out for ~1s) ──────────────────────────────
+  // ── Panting tongue (2.8s cycle) ───────────────────────────────────────────
   const pantT=(T%2800)/2800;
   const tongOut=pantT<0.36?Math.sin(pantT/0.36*Math.PI):0;
   if(tongOut>0.03){
-    ctx.save(); ctx.translate(30,12);
+    ctx.save(); ctx.translate(28,12);
     const ext=tongOut*10, flap=Math.sin(T/85)*2*tongOut;
     ctx.beginPath();
-    ctx.moveTo(-5,0);
-    ctx.bezierCurveTo(-6,ext*0.5+flap,-4,ext+flap,0,ext+flap);
-    ctx.bezierCurveTo(4,ext+flap,6,ext*0.5+flap,5,0);
-    ctx.closePath();
+    ctx.moveTo(-5,0); ctx.bezierCurveTo(-6,ext*0.5+flap,-4,ext+flap,0,ext+flap);
+    ctx.bezierCurveTo(4,ext+flap,6,ext*0.5+flap,5,0); ctx.closePath();
     const tg=ctx.createLinearGradient(0,0,0,ext);
     tg.addColorStop(0,'#e8809a'); tg.addColorStop(1,'#bf3d60');
     ctx.fillStyle=tg; ctx.fill();
@@ -643,21 +648,19 @@ function drawBird() {
   }
 
   // ── Eye ───────────────────────────────────────────────────────────────────
-  ctx.beginPath(); ctx.ellipse(15,-10,5.5,5,-0.1,0,Math.PI*2);
+  ctx.beginPath(); ctx.ellipse(16,-11,5.5,5,-0.1,0,Math.PI*2);
   ctx.fillStyle='#fff'; ctx.fill();
-  ctx.strokeStyle='#180804'; ctx.lineWidth=1.2; ctx.stroke();
-  ctx.beginPath(); ctx.arc(16,-10,3.8,0,Math.PI*2); ctx.fillStyle=AMBER; ctx.fill();
-  ctx.beginPath(); ctx.arc(16.5,-10,2.4,0,Math.PI*2); ctx.fillStyle='#060304'; ctx.fill();
-  ctx.beginPath(); ctx.arc(14.8,-11.5,1.4,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
-  ctx.beginPath(); ctx.arc(17.5,-9.2,0.7,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
+  ctx.strokeStyle='#160703'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(17,-11,3.8,0,Math.PI*2); ctx.fillStyle=AMBER; ctx.fill();
+  ctx.beginPath(); ctx.arc(17.5,-11,2.4,0,Math.PI*2); ctx.fillStyle='#050203'; ctx.fill();
+  ctx.beginPath(); ctx.arc(15.8,-12.5,1.4,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(18.5,-10.2,0.7,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
   // brow
-  ctx.beginPath(); ctx.moveTo(9,-14); ctx.quadraticCurveTo(15,-17.5,22,-13.5);
+  ctx.beginPath(); ctx.moveTo(10,-15); ctx.quadraticCurveTo(16,-18,23,-14);
   ctx.strokeStyle=C1; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.stroke();
   if(blinking){
-    ctx.beginPath(); ctx.moveTo(9,-10); ctx.lineTo(21,-10);
-    ctx.strokeStyle='#180804'; ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10,-11); ctx.lineTo(22,-11);
+    ctx.strokeStyle='#160703'; ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.stroke();
   }
 
   // ── Jump glow ─────────────────────────────────────────────────────────────
