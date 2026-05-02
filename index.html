@@ -514,213 +514,158 @@ function drawBird() {
   const T = Date.now();
 
   // chocolate lab palette
-  const CHOC  = '#3d1a08';  // main dark chocolate
-  const CHOC2 = '#5c2d12';  // mid chocolate
-  const CHOC3 = '#7a4020';  // warm highlight
-  const CHOC4 = '#9a5830';  // lightest highlight (forehead, snout top)
-  const DARK  = '#200d04';  // deep shadow
-  const NOSE  = '#0a0402';
-  const TONGUE= '#d9607a';
-  const AMBER = '#8B5E1A';  // iris color
+  const C1 = '#200d04';  // darkest shadow
+  const C2 = '#3d1a08';  // main body
+  const C3 = '#5c2a10';  // mid
+  const C4 = '#7a3d18';  // warm highlight
+  const C5 = '#9a5228';  // lightest (forehead, top of head)
+  const NOSE = '#080302';
+  const AMBER = '#7B4F10';
 
-  // ── Cape (billowing behind, drawn first so it's behind body) ─────────────
+  // helper: draw a leg as upper+lower segment with paw
+  function leg(x1,y1, kx,ky, px,py, col) {
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(kx,ky); ctx.lineTo(px,py);
+    ctx.strokeStyle=col; ctx.lineWidth=5.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(px,py,5,3.5,Math.atan2(py-ky,px-kx),0,Math.PI*2);
+    ctx.fillStyle=C2; ctx.fill();
+  }
+
+  // ── Cape ─────────────────────────────────────────────────────────────────
   const cw = Math.sin(T/160)*5;
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(-4, -10);
-  ctx.bezierCurveTo(-10,-7, -28,-3+cw*0.3, -40, 1+cw);
-  ctx.bezierCurveTo(-36, 18+cw*0.7, -14, 22, -2, 13);
+  ctx.moveTo(-2,-8);
+  ctx.bezierCurveTo(-10,-6,-26,-2+cw*0.4,-36,2+cw);
+  ctx.bezierCurveTo(-32,16+cw*0.7,-12,20,-1,10);
   ctx.closePath();
-  const capeG = ctx.createLinearGradient(-40,0,-2,0);
-  capeG.addColorStop(0,'#7f0000'); capeG.addColorStop(0.45,'#c62828'); capeG.addColorStop(1,'#e53935');
-  ctx.fillStyle=capeG; ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(-4,-8); ctx.bezierCurveTo(-14,-5,-30,-1+cw*0.4,-38,2+cw);
-  ctx.strokeStyle='rgba(255,100,100,0.3)'; ctx.lineWidth=2; ctx.stroke();
+  const cg=ctx.createLinearGradient(-36,0,-2,0);
+  cg.addColorStop(0,'#6d0000'); cg.addColorStop(0.5,'#c62828'); cg.addColorStop(1,'#e53935');
+  ctx.fillStyle=cg; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-2,-6); ctx.bezierCurveTo(-12,-4,-28,0+cw*0.4,-34,3+cw);
+  ctx.strokeStyle='rgba(255,90,90,0.25)'; ctx.lineWidth=2; ctx.stroke();
   ctx.restore();
 
-  // ── Back legs trailing behind (tucked up) ────────────────────────────────
-  ctx.save(); ctx.translate(-10, 7);
-  // thigh
-  ctx.beginPath(); ctx.ellipse(0,0,9,5,0.7,0,Math.PI*2);
-  ctx.fillStyle=CHOC; ctx.fill();
-  // lower leg curled up
-  ctx.beginPath(); ctx.ellipse(-7,4,7,4,1.1,0,Math.PI*2);
-  ctx.fillStyle=DARK; ctx.fill();
-  // paw blob
-  ctx.beginPath(); ctx.ellipse(-12,6,5,3.5,0.8,0,Math.PI*2);
-  ctx.fillStyle=CHOC; ctx.fill();
+  // ── Back legs (bent, trailing) ────────────────────────────────────────────
+  leg(-5, 6,  -14,18,  -20,14,  C1);   // far back leg
+  leg(-3, 8,  -12,20,  -18,16,  C2);   // near back leg (slightly lighter)
+
+  // ── Body — compact, round, clearly a dog not a seal ──────────────────────
+  ctx.beginPath(); ctx.ellipse(0, 2, 13, 11, 0, 0, Math.PI*2);
+  const bg=ctx.createRadialGradient(-3,-4,1,0,2,14);
+  bg.addColorStop(0,C4); bg.addColorStop(0.55,C3); bg.addColorStop(1,C1);
+  ctx.fillStyle=bg; ctx.fill();
+
+  // chest puff (front of body, connects to neck naturally)
+  ctx.beginPath(); ctx.ellipse(8,4,7,8,0.3,0,Math.PI*2);
+  const chg=ctx.createRadialGradient(6,0,1,8,4,8);
+  chg.addColorStop(0,C4); chg.addColorStop(1,C2);
+  ctx.fillStyle=chg; ctx.fill();
+
+  // ── Front legs stretched forward (Superman pose) ──────────────────────────
+  leg(6,10,  18,16,  28,12,  C1);   // far front leg
+  leg(8,10,  20,14,  30,10,  C3);   // near front leg (lighter)
+
+  // ── Neck ──────────────────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(7,-1); ctx.bezierCurveTo(9,-12,20,-14,22,-5);
+  ctx.bezierCurveTo(22,4,18,10,12,9); ctx.bezierCurveTo(7,8,5,5,7,-1);
+  ctx.closePath();
+  const ng=ctx.createLinearGradient(7,-14,22,10);
+  ng.addColorStop(0,C4); ng.addColorStop(1,C2);
+  ctx.fillStyle=ng; ctx.fill();
+
+  // ── Ear — floppy, blown back by wind ──────────────────────────────────────
+  const ef=Math.sin(T/200)*4;
+  ctx.save(); ctx.translate(12,-12);
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-1,5,-10,10+ef,-13,20+ef);
+  ctx.bezierCurveTo(-11,26+ef,-4,24+ef,0,15);
+  ctx.bezierCurveTo(2,8,3,3,2,0);
+  ctx.closePath();
+  ctx.fillStyle=C1; ctx.fill();
+  // inner ear warmth
+  ctx.beginPath();
+  ctx.moveTo(0,2); ctx.bezierCurveTo(-1,7,-7,12+ef,-9,19+ef);
+  ctx.bezierCurveTo(-8,23+ef,-4,21+ef,-1,14); ctx.bezierCurveTo(1,8,1,4,0,2);
+  ctx.closePath(); ctx.fillStyle='rgba(75,28,8,0.5)'; ctx.fill();
   ctx.restore();
 
-  // ── Body (stocky lab torso) ───────────────────────────────────────────────
-  ctx.beginPath(); ctx.ellipse(0, 4, 19, 11, -0.08, 0, Math.PI*2);
-  const bodG = ctx.createRadialGradient(-4,-2,2,0,4,20);
-  bodG.addColorStop(0,CHOC3); bodG.addColorStop(0.5,CHOC2); bodG.addColorStop(1,DARK);
-  ctx.fillStyle=bodG; ctx.fill();
+  // ── Head — big, broad, blocky Lab skull ───────────────────────────────────
+  ctx.beginPath(); ctx.ellipse(14,-8,15,13,0,0,Math.PI*2);
+  const hg=ctx.createRadialGradient(9,-14,2,14,-8,16);
+  hg.addColorStop(0,C5); hg.addColorStop(0.38,C4);
+  hg.addColorStop(0.72,C3); hg.addColorStop(1,C1);
+  ctx.fillStyle=hg; ctx.fill();
 
-  // ── Front leg stretched forward (Superman!) ───────────────────────────────
-  ctx.save(); ctx.translate(14, 4);
-  // upper foreleg
-  ctx.beginPath(); ctx.ellipse(5, 0, 10, 5, -0.15, 0, Math.PI*2);
-  ctx.fillStyle=CHOC2; ctx.fill();
-  // lower leg / paw
-  ctx.beginPath(); ctx.ellipse(18, 1, 8, 4.5, -0.1, 0, Math.PI*2);
-  ctx.fillStyle=CHOC3; ctx.fill();
-  // toe knuckles
-  ctx.fillStyle=DARK;
-  for(let i=0; i<3; i++) {
-    ctx.beginPath();
-    ctx.ellipse(24+i*2.8, -1+i*1.2, 3, 2.2, 0.15, 0, Math.PI*2);
-    ctx.fill();
-  }
-  ctx.restore();
-
-  // ── Neck (thick, lab-style) ───────────────────────────────────────────────
+  // ── Muzzle — broad square Lab muzzle ──────────────────────────────────────
+  // the muzzle on a lab is wide and somewhat squared-off, not pointed
   ctx.beginPath();
-  ctx.moveTo(6,-3); ctx.bezierCurveTo(8,-14,18,-14,20,-6);
-  ctx.bezierCurveTo(20,2,16,8,12,8); ctx.bezierCurveTo(6,8,4,4,6,-3);
+  ctx.moveTo(20,-2); ctx.bezierCurveTo(28,-4,36,-2,37,3);
+  ctx.bezierCurveTo(38,8,36,13,30,13);
+  ctx.lineTo(19,13); ctx.bezierCurveTo(16,13,15,9,15,6);
+  ctx.bezierCurveTo(15,2,17,-1,20,-2);
   ctx.closePath();
-  const neckG=ctx.createLinearGradient(6,-14,20,8);
-  neckG.addColorStop(0,CHOC3); neckG.addColorStop(1,CHOC);
-  ctx.fillStyle=neckG; ctx.fill();
+  const mg=ctx.createRadialGradient(22,-2,1,26,6,14);
+  mg.addColorStop(0,C4); mg.addColorStop(1,C2);
+  ctx.fillStyle=mg; ctx.fill();
+  // muzzle top ridge
+  ctx.beginPath(); ctx.ellipse(26,-2,10,3.5,0,0,Math.PI*2);
+  ctx.fillStyle=C3; ctx.fill();
 
-  // ── Floppy ear (blown back in the wind) ──────────────────────────────────
-  const earF = Math.sin(T/220)*4;
-  ctx.save(); ctx.translate(11, -10);
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.bezierCurveTo(-2, 6, -14, 12+earF, -18, 24+earF);
-  ctx.bezierCurveTo(-16, 30+earF, -6, 26+earF, -2, 16);
-  ctx.bezierCurveTo(0, 8, 2, 3, 2, 0);
-  ctx.closePath();
-  ctx.fillStyle=DARK; ctx.fill();
-  // ear inner warm tone
-  ctx.beginPath();
-  ctx.moveTo(-1, 2);
-  ctx.bezierCurveTo(-3, 8, -10, 14+earF, -13, 22+earF);
-  ctx.bezierCurveTo(-11, 26+earF, -6, 22+earF, -4, 14);
-  ctx.bezierCurveTo(-2, 8, 0, 4, -1, 2);
-  ctx.closePath();
-  ctx.fillStyle='rgba(80,32,10,0.55)'; ctx.fill();
-  ctx.restore();
-
-  // ── Head — broad, blocky Labrador skull ──────────────────────────────────
-  // back of skull (wide & round)
-  ctx.beginPath(); ctx.ellipse(13, -8, 16, 14, -0.08, 0, Math.PI*2);
-  const headG = ctx.createRadialGradient(8,-14,2,13,-8,17);
-  headG.addColorStop(0,CHOC4); headG.addColorStop(0.4,CHOC3);
-  headG.addColorStop(0.72,CHOC2); headG.addColorStop(1,DARK);
-  ctx.fillStyle=headG; ctx.fill();
-
-  // ── Muzzle — wide, square lab muzzle ─────────────────────────────────────
-  // main muzzle block
-  ctx.beginPath();
-  ctx.moveTo(18, 0);
-  ctx.lineTo(32, 0);
-  ctx.bezierCurveTo(36,-1,38,2,38,5);
-  ctx.bezierCurveTo(38,10,36,13,32,13);
-  ctx.lineTo(18,13);
-  ctx.bezierCurveTo(16,13,15,10,15,7);
-  ctx.bezierCurveTo(15,3,16,0,18,0);
-  ctx.closePath();
-  const muzzG=ctx.createLinearGradient(15,0,38,13);
-  muzzG.addColorStop(0,CHOC3); muzzG.addColorStop(1,CHOC);
-  ctx.fillStyle=muzzG; ctx.fill();
-  // muzzle top ridge (slightly lighter)
-  ctx.beginPath(); ctx.ellipse(26,-1,11,4,0,0,Math.PI*2);
-  ctx.fillStyle=CHOC3; ctx.fill();
-  // muzzle split line (center crease)
-  ctx.beginPath(); ctx.moveTo(26,1); ctx.lineTo(26,12);
-  ctx.strokeStyle='rgba(20,8,2,0.3)'; ctx.lineWidth=1; ctx.stroke();
-
-  // ── Nose — wide, Labs have big flat noses ────────────────────────────────
-  ctx.beginPath(); ctx.ellipse(35, 3, 4.5, 4, 0, 0, Math.PI*2);
+  // ── Nose ──────────────────────────────────────────────────────────────────
+  ctx.beginPath(); ctx.ellipse(34,2,4.5,3.8,0,0,Math.PI*2);
   ctx.fillStyle=NOSE; ctx.fill();
-  ctx.strokeStyle='#000'; ctx.lineWidth=0.5; ctx.stroke();
-  // nostril divot
-  ctx.beginPath(); ctx.moveTo(32,3); ctx.bezierCurveTo(33,2,34,3,33,4);
-  ctx.moveTo(37,3); ctx.bezierCurveTo(37,2,38,3,37,4);
-  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=0.8; ctx.stroke();
-  // nose shine
-  ctx.beginPath(); ctx.ellipse(33.5, 1.5, 1.5, 1, -0.3, 0, Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(32.5,0.8,1.4,0.9,-0.3,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fill();
 
-  // ── Smile / mouth line ────────────────────────────────────────────────────
-  ctx.beginPath();
-  ctx.moveTo(19, 11); ctx.quadraticCurveTo(27, 15.5, 35, 10);
-  ctx.strokeStyle='rgba(12,4,1,0.55)'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+  // ── Mouth line ────────────────────────────────────────────────────────────
+  ctx.beginPath(); ctx.moveTo(20,11); ctx.quadraticCurveTo(27,15,34,10);
+  ctx.strokeStyle='rgba(10,3,1,0.5)'; ctx.lineWidth=1.8; ctx.lineCap='round'; ctx.stroke();
 
-  // ── Panting tongue animation ──────────────────────────────────────────────
-  // 2.8s cycle: tongue fully out for ~1s, rest for ~1.8s
-  const PANT = 2800;
-  const pantT = (T % PANT) / PANT;
-  const tongOut = pantT < 0.36 ? Math.sin(pantT / 0.36 * Math.PI) : 0;
-
-  if(tongOut > 0.03) {
-    ctx.save();
-    // root at right corner of mouth
-    ctx.translate(33, 12);
-    const ext = tongOut * 11;
-    const flap = Math.sin(T / 85) * 2 * tongOut;
-
-    // tongue shape — wide flat paddle
+  // ── Panting tongue (2.8s cycle, out for ~1s) ──────────────────────────────
+  const pantT=(T%2800)/2800;
+  const tongOut=pantT<0.36?Math.sin(pantT/0.36*Math.PI):0;
+  if(tongOut>0.03){
+    ctx.save(); ctx.translate(30,12);
+    const ext=tongOut*10, flap=Math.sin(T/85)*2*tongOut;
     ctx.beginPath();
-    ctx.moveTo(-5.5, 0);
-    ctx.bezierCurveTo(-6.5, ext*0.5+flap, -4, ext+flap, 0, ext+flap);
-    ctx.bezierCurveTo(4, ext+flap, 6.5, ext*0.5+flap, 5.5, 0);
+    ctx.moveTo(-5,0);
+    ctx.bezierCurveTo(-6,ext*0.5+flap,-4,ext+flap,0,ext+flap);
+    ctx.bezierCurveTo(4,ext+flap,6,ext*0.5+flap,5,0);
     ctx.closePath();
-    const tg = ctx.createLinearGradient(0, 0, 0, ext);
+    const tg=ctx.createLinearGradient(0,0,0,ext);
     tg.addColorStop(0,'#e8809a'); tg.addColorStop(1,'#bf3d60');
     ctx.fillStyle=tg; ctx.fill();
-
-    // center crease
-    ctx.beginPath(); ctx.moveTo(0, 1); ctx.lineTo(0, ext*0.8+flap);
-    ctx.strokeStyle='rgba(150,35,55,0.45)'; ctx.lineWidth=1; ctx.stroke();
-
-    // highlight shimmer
-    ctx.beginPath(); ctx.ellipse(-2, ext*0.35, 2.5, 1.8*tongOut, -0.1, 0, Math.PI*2);
-    ctx.fillStyle='rgba(255,215,225,0.38)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0,1); ctx.lineTo(0,ext*0.8+flap);
+    ctx.strokeStyle='rgba(150,35,55,0.4)'; ctx.lineWidth=0.9; ctx.stroke();
     ctx.restore();
   }
 
-  // ── Eye — warm amber, kind lab expression ────────────────────────────────
-  ctx.beginPath(); ctx.ellipse(15, -11, 6, 5.5, -0.1, 0, Math.PI*2);
+  // ── Eye ───────────────────────────────────────────────────────────────────
+  ctx.beginPath(); ctx.ellipse(15,-10,5.5,5,-0.1,0,Math.PI*2);
   ctx.fillStyle='#fff'; ctx.fill();
-  ctx.strokeStyle='#1a0804'; ctx.lineWidth=1.2; ctx.stroke();
-  // iris
-  ctx.beginPath(); ctx.arc(16, -11, 4.2, 0, Math.PI*2);
-  ctx.fillStyle=AMBER; ctx.fill();
-  // pupil
-  ctx.beginPath(); ctx.arc(16.5, -11, 2.7, 0, Math.PI*2);
-  ctx.fillStyle='#08040A'; ctx.fill();
-  // main shine
-  ctx.beginPath(); ctx.arc(14.5, -12.5, 1.5, 0, Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.fill();
-  // secondary shine
-  ctx.beginPath(); ctx.arc(18, -10, 0.75, 0, Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fill();
-  // eyelid crease on top
-  ctx.beginPath(); ctx.moveTo(9,-13); ctx.quadraticCurveTo(15,-16,22,-12);
-  ctx.strokeStyle='rgba(20,8,2,0.5)'; ctx.lineWidth=1.5; ctx.lineCap='round'; ctx.stroke();
-
-  // ── Brow ridge (raised, excited dog look) ────────────────────────────────
-  ctx.beginPath(); ctx.moveTo(9,-15); ctx.quadraticCurveTo(15,-18.5,22,-14.5);
-  ctx.strokeStyle=DARK; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(10,-14.5); ctx.quadraticCurveTo(15,-17.5,21,-14);
-  ctx.strokeStyle='rgba(90,40,15,0.35)'; ctx.lineWidth=1; ctx.stroke();
-
-  // blinking
-  if(blinking) {
-    ctx.beginPath(); ctx.moveTo(9,-11); ctx.lineTo(22,-11);
-    ctx.strokeStyle='#1a0804'; ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.stroke();
+  ctx.strokeStyle='#180804'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(16,-10,3.8,0,Math.PI*2); ctx.fillStyle=AMBER; ctx.fill();
+  ctx.beginPath(); ctx.arc(16.5,-10,2.4,0,Math.PI*2); ctx.fillStyle='#060304'; ctx.fill();
+  ctx.beginPath(); ctx.arc(14.8,-11.5,1.4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(17.5,-9.2,0.7,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
+  // brow
+  ctx.beginPath(); ctx.moveTo(9,-14); ctx.quadraticCurveTo(15,-17.5,22,-13.5);
+  ctx.strokeStyle=C1; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.stroke();
+  if(blinking){
+    ctx.beginPath(); ctx.moveTo(9,-10); ctx.lineTo(21,-10);
+    ctx.strokeStyle='#180804'; ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.stroke();
   }
 
   // ── Jump glow ─────────────────────────────────────────────────────────────
-  if(bird.jumpGlow>0) {
-    const gr=ctx.createRadialGradient(0,0,14,0,0,36);
-    gr.addColorStop(0,`rgba(180,90,30,${bird.jumpGlow*0.35})`);
+  if(bird.jumpGlow>0){
+    const gr=ctx.createRadialGradient(0,0,12,0,0,34);
+    gr.addColorStop(0,`rgba(180,90,30,${bird.jumpGlow*0.32})`);
     gr.addColorStop(1,'rgba(180,90,30,0)');
-    ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(0,0,36,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(0,0,34,0,Math.PI*2); ctx.fill();
   }
 
   ctx.restore();
