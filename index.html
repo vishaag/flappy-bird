@@ -541,22 +541,12 @@ function drawBird() {
   ctx.restore();
 
   // ── Far legs (behind body, darker) ───────────────────────────────────────
-  // Far BACK leg: folded = knee tucked up-back, paw under body
-  //               kicked = knee back, paw pushed further back-down
-  limb(
-    -6, 4,
-    lp(-10,-2, -16,10, k),  // knee
-    lp(-8, 8,  -22,18, k),  // paw
-    4.5, C1
-  );
-  // Far FRONT leg: folded = knee forward-up, paw tucked under chest
-  //                kicked = knee forward-down, paw pushed out front
-  limb(
-    7, 4,
-    lp(14,-2, 18,10, k),
-    lp(11, 8, 28,18, k),
-    4.5, C1
-  );
+  // folded: knee tucked up near body, paw curled under
+  // kicked: knee pushes out, paw extends away from body
+  // Far BACK leg  (hip at rear-left of body)
+  limb(-6,4, lp(-11,-13,k),lp(0,12,k), lp(-9,-20,k),lp(8,20,k), 4.5, C1);
+  // Far FRONT leg (hip at front-right of body)
+  limb( 7,4, lp(13,15,k), lp(0,12,k),  lp(10,24,k), lp(8,20,k), 4.5, C1);
 
   // ── Body ──────────────────────────────────────────────────────────────────
   ctx.beginPath(); ctx.ellipse(0,2,14,10,0,0,Math.PI*2);
@@ -564,32 +554,20 @@ function drawBird() {
   bg.addColorStop(0,C5); bg.addColorStop(0.4,C4); bg.addColorStop(0.75,C3); bg.addColorStop(1,C1);
   ctx.fillStyle=bg; ctx.fill();
 
-  // ── Tail — tapered stroke, no blob ───────────────────────────────────────
-  const tw=Math.sin(T/140)*9;
-  ctx.save(); ctx.translate(-13,0);
-  // thick base fading to thin tip via layered strokes
-  ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(0,1); ctx.bezierCurveTo(-3,-5,-8,-13+tw,-6,-19+tw);
-  ctx.strokeStyle=C3; ctx.lineWidth=5; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-3,-7+tw*0.4); ctx.bezierCurveTo(-5,-12+tw*0.7,-7,-17+tw,-6,-19+tw);
-  ctx.strokeStyle=C4; ctx.lineWidth=2.5; ctx.stroke();
+  // ── Tail — tapered, no blob ───────────────────────────────────────────────
+  const tw=Math.sin(T/140)*8;
+  ctx.save(); ctx.translate(-13,1); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(-2,-6,-7,-13+tw,-5,-18+tw);
+  ctx.strokeStyle=C3; ctx.lineWidth=4.5; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3,-9+tw*0.5); ctx.bezierCurveTo(-4,-13+tw*0.8,-5,-16+tw,-5,-18+tw);
+  ctx.strokeStyle=C4; ctx.lineWidth=2; ctx.stroke();
   ctx.restore();
 
-  // ── Near legs (in front of body, slightly lighter) ─────────────────────────
+  // ── Near legs (lighter, in front of body) ────────────────────────────────
   // Near BACK leg
-  limb(
-    -4, 5,
-    lp(-9,-1, -14,12, k),
-    lp(-7, 9, -20,20, k),
-    5, C3
-  );
+  limb(-4,5, lp(-10,-12,k),lp(1,13,k), lp(-8,-18,k),lp(9,21,k), 5, C3);
   // Near FRONT leg
-  limb(
-    9, 5,
-    lp(16,-1, 20,12, k),
-    lp(12, 9, 30,20, k),
-    5, C3
-  );
+  limb( 8,5, lp(14,16,k), lp(1,13,k),  lp(11,25,k), lp(9,21,k), 5, C3);
 
   // ── Neck ──────────────────────────────────────────────────────────────────
   ctx.beginPath();
