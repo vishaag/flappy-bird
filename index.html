@@ -74,6 +74,29 @@ function playHit() {
   src.connect(f); f.connect(g); g.connect(AC.destination);
   g.gain.setValueAtTime(0.45,AC.currentTime); g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.18); src.start();
 }
+function playNuclearDrop() {
+  // Falling whistle: descending pitch
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g); g.connect(AC.destination); o.type='sine';
+  const t=AC.currentTime;
+  o.frequency.setValueAtTime(900,t); o.frequency.exponentialRampToValueAtTime(120,t+0.7);
+  g.gain.setValueAtTime(0.18,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.75); o.start(t); o.stop(t+0.75);
+}
+function playNuclearBlast() {
+  // Deep boom + rumble
+  const buf=AC.createBuffer(1,AC.sampleRate*1.2,AC.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,0.6)*0.9;
+  const src=AC.createBufferSource(),lp=AC.createBiquadFilter(),g=AC.createGain();
+  src.buffer=buf; lp.type='lowpass'; lp.frequency.value=200;
+  src.connect(lp); lp.connect(g); g.connect(AC.destination);
+  g.gain.setValueAtTime(1.2,AC.currentTime); g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+1.2); src.start();
+  // High crack
+  const buf2=AC.createBuffer(1,AC.sampleRate*0.2,AC.sampleRate), d2=buf2.getChannelData(0);
+  for(let i=0;i<d2.length;i++) d2[i]=(Math.random()*2-1)*Math.pow(1-i/d2.length,2);
+  const src2=AC.createBufferSource(),g2=AC.createGain();
+  src2.buffer=buf2; src2.connect(g2); g2.connect(AC.destination);
+  g2.gain.setValueAtTime(0.7,AC.currentTime); g2.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.2); src2.start();
+}
 function playBulletEarned() {
   const o=AC.createOscillator(),g=AC.createGain(); o.connect(g); g.connect(AC.destination); o.type='sine';
   const t=AC.currentTime;
@@ -133,6 +156,7 @@ const GROUND_H=78, BIRD_X=110, SPAWN_INTERVAL=1.85;
 const BULLET_SPEED=700, PIPES_PER_BULLET=5, START_BULLETS=3;
 // Fire button position (mobile)
 const FB_X=W-52, FB_Y=H-GROUND_H-48, FB_R=32;
+const NUC_X=52,  NUC_Y=H-GROUND_H-48, NUC_R=32;
 
 let bestScore = parseInt(localStorage.getItem('flappy_best')||'0');
 
@@ -141,6 +165,7 @@ let mode, bird, pipes, particles, enemies, bullets, floaters;
 let groundOff, pipeTimer, enemyTimer, deathTimer;
 let shake, lastTs=0, score, newBest, scorePop;
 let bulletCount, pipesForBullet;
+let nuclear=null; // {timer, bombX, bombY, exploded, explodeR, shockR, flashAlpha}
 let skyPh=0; // current sky phase [0-1], updated each frame
 
 const CLOUDS = Array.from({length:7}, (_,i)=>({
@@ -166,6 +191,14 @@ function onJump() {
   else if (mode==='playing') { bird.vy=JUMP_VEL; bird.jumpGlow=1; playJump(); playWing(); }
   else if (mode==='dead' && deathTimer>0.55) { init(); mode='start'; }
 }
+function triggerNuclear() {
+  if(mode!=='playing' || bulletCount<5 || nuclear) return;
+  bulletCount=0;
+  nuclear={timer:0, bombX:BIRD_X+10, bombY:bird.y, exploded:false,
+           explodeX:0, explodeY:0, explodeR:0, shockR:0, flashAlpha:0, mushroom:0};
+  playNuclearDrop();
+  shake=Math.max(shake||0, 0.3);
+}
 function shoot() {
   if (AC.state==='suspended') AC.resume();
   if (mode!=='playing' || bulletCount<=0) return;
@@ -177,6 +210,7 @@ function shoot() {
 document.addEventListener('keydown', e => {
   if (e.code==='Space'||e.code==='ArrowUp') { e.preventDefault(); onJump(); }
   if (e.code==='KeyX'||e.code==='KeyF'||e.code==='KeyZ') { e.preventDefault(); shoot(); }
+  if (e.code==='KeyN'||e.code==='KeyB') { e.preventDefault(); triggerNuclear(); }
 });
 canvas.addEventListener('pointerdown', e => {
   e.preventDefault();
@@ -185,7 +219,9 @@ canvas.addEventListener('pointerdown', e => {
   const cy=(e.clientY-rect.top)*(H/rect.height);
   // Check fire button hit
   const dx=cx-FB_X, dy=cy-FB_Y;
+  const nx=cx-NUC_X, ny=cy-NUC_Y;
   if (Math.sqrt(dx*dx+dy*dy) < FB_R+8 && mode==='playing') shoot();
+  else if (Math.sqrt(nx*nx+ny*ny) < NUC_R+8 && mode==='playing' && bulletCount>=5) triggerNuclear();
   else onJump();
 });
 
@@ -267,6 +303,31 @@ function update(dt) {
       }
     }
     if(hit) continue;
+  }
+  // Nuclear attack update
+  if(nuclear) {
+    nuclear.timer+=dt;
+    if(!nuclear.exploded) {
+      nuclear.bombY+=580*dt; // bomb falls
+      if(nuclear.bombY >= H-GROUND_H-10) {
+        nuclear.exploded=true;
+        nuclear.explodeX=nuclear.bombX;
+        nuclear.explodeY=H-GROUND_H-10;
+        nuclear.flashAlpha=1;
+        // Obliterate all enemies with burst
+        const cols={bat:['#2d1050','#ff1a1a','#f0ecda'],ghost:['#c0d8ff','#8090ff','#ffffff'],skull:['#e8e2c8','#ff5a00','#c8be9a']};
+        for(const e of enemies) { burst(e.x,e.y,20,cols[e.type]); burst(e.x,e.y,8,['#fff','#FFD600']); }
+        enemies=[];
+        shake=Math.max(shake||0, 2.5);
+        playNuclearBlast();
+      }
+    } else {
+      nuclear.explodeR=Math.min(W*1.2, nuclear.explodeR+1100*dt);
+      nuclear.shockR+=900*dt;
+      nuclear.flashAlpha=Math.max(0, nuclear.flashAlpha-dt*2.2);
+      nuclear.mushroom=Math.min(1, nuclear.mushroom+dt*1.4);
+    }
+    if(nuclear.timer>3.2) nuclear=null;
   }
   // Clouds
   for(const c of CLOUDS) {
@@ -906,6 +967,151 @@ function drawFireButton() {
   ctx.restore();
 }
 
+// ─── Draw nuclear button (mobile) ────────────────────────────────────────────
+function drawNuclearButton() {
+  if(mode!=='playing') return;
+  const ready = bulletCount>=5;
+  ctx.save();
+  // Pulse ring when ready
+  if(ready) {
+    const pulse=0.5+0.5*Math.sin(Date.now()/220);
+    ctx.beginPath(); ctx.arc(NUC_X,NUC_Y,NUC_R+8+pulse*5,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(50,255,80,${0.35+pulse*0.35})`; ctx.lineWidth=2.5; ctx.stroke();
+  }
+  // Button body
+  const bg=ctx.createRadialGradient(NUC_X-6,NUC_Y-6,3,NUC_X,NUC_Y,NUC_R);
+  if(ready) { bg.addColorStop(0,'#1a5c1a'); bg.addColorStop(1,'#0a2e0a'); }
+  else       { bg.addColorStop(0,'#2a2a2a'); bg.addColorStop(1,'#111'); }
+  ctx.beginPath(); ctx.arc(NUC_X,NUC_Y,NUC_R,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fill();
+  ctx.fillStyle=bg; ctx.fill();
+  ctx.strokeStyle=ready?'rgba(80,255,100,0.5)':'rgba(255,255,255,0.1)'; ctx.lineWidth=1.5; ctx.stroke();
+  // Bomb icon
+  ctx.save(); ctx.translate(NUC_X, NUC_Y+2);
+  // bomb body
+  ctx.beginPath(); ctx.arc(0,2,10,0,Math.PI*2);
+  ctx.fillStyle=ready?'#33cc44':'#555'; ctx.fill();
+  ctx.strokeStyle=ready?'#88ff99':'#333'; ctx.lineWidth=1; ctx.stroke();
+  // radiation symbol
+  ctx.strokeStyle=ready?'rgba(0,60,0,0.7)':'rgba(0,0,0,0.5)'; ctx.lineWidth=1.5;
+  for(let i=0;i<3;i++) {
+    ctx.save(); ctx.rotate(i*Math.PI*2/3);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,8,Math.PI*0.1,Math.PI*0.56,false); ctx.lineTo(0,0);
+    ctx.stroke(); ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(0,2,2.5,0,Math.PI*2); ctx.fillStyle=ready?'rgba(0,60,0,0.5)':'rgba(0,0,0,0.4)'; ctx.fill();
+  // fuse
+  ctx.beginPath(); ctx.moveTo(0,-8); ctx.bezierCurveTo(4,-14,8,-12,6,-18);
+  ctx.strokeStyle=ready?'#88ff99':'#777'; ctx.lineWidth=1.5; ctx.lineCap='round'; ctx.stroke();
+  // fuse spark
+  if(ready) {
+    const sp=0.5+0.5*Math.sin(Date.now()/80);
+    ctx.beginPath(); ctx.arc(6,-18,2+sp,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,220,50,${0.6+sp*0.4})`; ctx.shadowBlur=8; ctx.shadowColor='#ff0'; ctx.fill();
+    ctx.shadowBlur=0;
+  }
+  ctx.restore();
+  // Bullet cost label
+  ctx.font='7px "Segoe UI",Arial'; ctx.textAlign='center';
+  ctx.fillStyle=ready?'rgba(100,255,120,0.8)':'rgba(255,255,255,0.25)';
+  ctx.fillText('NUKE',NUC_X,NUC_Y+NUC_R+10);
+  // bullet count needed
+  if(!ready) {
+    ctx.font='bold 8px "Segoe UI",Arial';
+    ctx.fillStyle='rgba(255,180,80,0.5)';
+    ctx.fillText(`${bulletCount}/5`,NUC_X,NUC_Y+2);
+  }
+  ctx.restore();
+}
+
+// ─── Draw nuclear bomb + explosion ───────────────────────────────────────────
+function drawNuclear() {
+  if(!nuclear) return;
+  ctx.save();
+
+  if(!nuclear.exploded) {
+    // Falling bomb
+    ctx.save(); ctx.translate(nuclear.bombX, nuclear.bombY);
+    const spin = nuclear.timer * 4;
+    ctx.rotate(spin);
+    // glow
+    ctx.shadowBlur=20; ctx.shadowColor='rgba(50,255,80,0.8)';
+    ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2);
+    ctx.fillStyle='#111'; ctx.fill();
+    ctx.strokeStyle='#33cc44'; ctx.lineWidth=2; ctx.stroke();
+    ctx.shadowBlur=0;
+    // radiation
+    ctx.strokeStyle='rgba(50,200,60,0.7)'; ctx.lineWidth=2;
+    for(let i=0;i<3;i++) {
+      ctx.save(); ctx.rotate(i*Math.PI*2/3);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,11,Math.PI*0.1,Math.PI*0.56,false); ctx.lineTo(0,0);
+      ctx.stroke(); ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(0,0,3.5,0,Math.PI*2); ctx.fillStyle='rgba(50,200,60,0.5)'; ctx.fill();
+    // fins
+    ctx.fillStyle='#33cc44';
+    [[-1,1],[1,1]].forEach(([sx,sy])=>{ ctx.save(); ctx.scale(sx,sy); ctx.beginPath(); ctx.moveTo(2,12); ctx.lineTo(8,20); ctx.lineTo(-4,20); ctx.closePath(); ctx.fill(); ctx.restore(); });
+    // speed lines
+    ctx.strokeStyle='rgba(50,255,80,0.3)'; ctx.lineWidth=1;
+    for(let i=0;i<4;i++) { const lx=(i-1.5)*7; ctx.beginPath(); ctx.moveTo(lx,-14); ctx.lineTo(lx,-24); ctx.stroke(); }
+    ctx.restore();
+  } else {
+    const ex=nuclear.explodeX, ey=nuclear.explodeY;
+    const t=Math.min(1,(nuclear.timer-0.35)/1.6);
+
+    // Ground shockwave ring
+    if(nuclear.shockR<W*1.5) {
+      ctx.beginPath(); ctx.arc(ex,ey,nuclear.shockR,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,200,50,${Math.max(0,0.7-nuclear.shockR/W)})`; ctx.lineWidth=4; ctx.stroke();
+      ctx.beginPath(); ctx.arc(ex,ey,nuclear.shockR*0.85,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,255,255,${Math.max(0,0.4-nuclear.shockR/W)})`; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // Main fireball (expands, fades)
+    if(nuclear.explodeR>0) {
+      const fadeT=Math.max(0,1-t*0.9);
+      const fg=ctx.createRadialGradient(ex,ey-nuclear.explodeR*0.1,nuclear.explodeR*0.05,ex,ey,nuclear.explodeR);
+      fg.addColorStop(0,  `rgba(255,255,220,${fadeT})`);
+      fg.addColorStop(0.2,`rgba(255,220,50,${fadeT*0.9})`);
+      fg.addColorStop(0.5,`rgba(255,100,10,${fadeT*0.7})`);
+      fg.addColorStop(0.8,`rgba(160,40,0,${fadeT*0.4})`);
+      fg.addColorStop(1,  `rgba(60,10,0,0)`);
+      ctx.beginPath(); ctx.arc(ex,ey,nuclear.explodeR,0,Math.PI*2);
+      ctx.fillStyle=fg; ctx.fill();
+    }
+
+    // Mushroom stem
+    const mh = nuclear.mushroom;
+    if(mh>0) {
+      const stemH=mh*160, stemW=18+mh*14;
+      const sg=ctx.createLinearGradient(ex-stemW,ey-stemH,ex+stemW,ey);
+      sg.addColorStop(0,'rgba(180,100,20,0)'); sg.addColorStop(0.3,`rgba(200,130,40,${mh*0.7})`); sg.addColorStop(1,`rgba(120,60,10,${mh*0.5})`);
+      ctx.beginPath(); ctx.moveTo(ex-stemW*0.5,ey); ctx.bezierCurveTo(ex-stemW,ey-stemH*0.4,ex-stemW*1.2,ey-stemH*0.8,ex,ey-stemH);
+      ctx.bezierCurveTo(ex+stemW*1.2,ey-stemH*0.8,ex+stemW,ey-stemH*0.4,ex+stemW*0.5,ey);
+      ctx.fillStyle=sg; ctx.fill();
+
+      // Mushroom cap
+      const capY=ey-stemH, capRx=40+mh*60, capRy=28+mh*35;
+      const cg=ctx.createRadialGradient(ex,capY,capRx*0.1,ex,capY,capRx);
+      cg.addColorStop(0,`rgba(255,180,40,${mh*0.9})`); cg.addColorStop(0.5,`rgba(200,80,10,${mh*0.8})`); cg.addColorStop(1,`rgba(80,20,0,0)`);
+      ctx.beginPath(); ctx.ellipse(ex,capY,capRx,capRy,0,0,Math.PI*2);
+      ctx.fillStyle=cg; ctx.fill();
+      // dark underside
+      ctx.beginPath(); ctx.ellipse(ex,capY+capRy*0.3,capRx*0.85,capRy*0.5,0,0,Math.PI);
+      ctx.fillStyle=`rgba(40,10,0,${mh*0.4})`; ctx.fill();
+    }
+  }
+
+  // Full-screen white flash on impact
+  if(nuclear.flashAlpha>0) {
+    ctx.globalAlpha=nuclear.flashAlpha;
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1;
+  }
+
+  ctx.restore();
+}
+
 // ─── Draw score ───────────────────────────────────────────────────────────────
 function drawScore() {
   if(mode!=='playing'&&mode!=='dead') return;
@@ -1053,7 +1259,7 @@ function frame(ts) {
   vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,`rgba(0,0,${Math.round(getNightness()*20)},${0.38+getNightness()*0.18})`);
   ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
 
-  drawScore(); drawAmmoHUD(); drawFireButton(); drawFloaters();
+  drawNuclear(); drawScore(); drawAmmoHUD(); drawFireButton(); drawNuclearButton(); drawFloaters();
   if(mode==='start') drawStartScreen();
   if(mode==='dead')  drawGameOver();
 
