@@ -512,60 +512,84 @@ function drawPipes() {
 function drawBird() {
   ctx.save(); ctx.translate(BIRD_X, bird.y); ctx.rotate(bird.rot);
   const T = Date.now();
+  const k = bird.jumpGlow; // 0=folded, 1=kick
 
   const C1='#1e0c04', C2='#3b1807', C3='#5a2810', C4='#7a3d1a', C5='#9a5226';
   const NOSE='#07020e', AMBER='#7a4f0e';
 
-  // draw one leg: hip→knee→paw, with a paw ellipse at end
-  function drawLeg(hx,hy, kx,ky, px,py, w, shade) {
-    ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(kx,ky); ctx.lineTo(px,py);
-    ctx.strokeStyle=shade; ctx.lineWidth=w; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(px,py,w*0.8,w*0.55,Math.atan2(py-ky,px-kx)+0.4,0,Math.PI*2);
-    ctx.fillStyle=shade; ctx.fill();
+  // lerp helper
+  const lp=(a,b,t)=>a+(b-a)*t;
+
+  // draw a two-segment limb: hip→knee→paw
+  function limb(hx,hy, kx,ky, px,py, w, col) {
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(kx,ky); ctx.lineTo(px,py); ctx.stroke();
   }
 
-  // ── Superman scarf (behind everything) ───────────────────────────────────
+  // ── Superman scarf ────────────────────────────────────────────────────────
   const cw=Math.sin(T/165)*5;
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(-3,-6);
-  ctx.bezierCurveTo(-12,-4,-28,-1+cw*0.4,-38,3+cw);
-  ctx.bezierCurveTo(-34,15+cw*0.7,-14,18,-2,9);
+  ctx.moveTo(-3,-5); ctx.bezierCurveTo(-12,-3,-28,0+cw*0.4,-38,4+cw);
+  ctx.bezierCurveTo(-34,14+cw*0.7,-14,17,-2,8);
   ctx.closePath();
-  const cg=ctx.createLinearGradient(-38,3,-3,-6);
+  const cg=ctx.createLinearGradient(-38,4,-3,-5);
   cg.addColorStop(0,'#5c0000'); cg.addColorStop(0.5,'#c62828'); cg.addColorStop(1,'#ef5350');
   ctx.fillStyle=cg; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-3,-4); ctx.bezierCurveTo(-14,-2,-30,2+cw*0.4,-36,4+cw);
-  ctx.strokeStyle='rgba(255,100,100,0.28)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3,-3); ctx.bezierCurveTo(-14,-1,-30,2+cw*0.4,-36,5+cw);
+  ctx.strokeStyle='rgba(255,110,110,0.25)'; ctx.lineWidth=1.8; ctx.stroke();
   ctx.restore();
 
-  // ── Far (shadow) legs — drawn behind body ─────────────────────────────────
-  // far back leg: hip at rear of body, knee back+down, paw further back+down
-  drawLeg(-7,4, -12,14, -20,20, 5, C1);
-  // far front leg: hip at chest, knee forward+down, paw out front
-  drawLeg(8,5,  16,14,  24,20,  5, C1);
+  // ── Far legs (behind body, darker) ───────────────────────────────────────
+  // Far BACK leg: folded = knee tucked up-back, paw under body
+  //               kicked = knee back, paw pushed further back-down
+  limb(
+    -6, 4,
+    lp(-10,-2, -16,10, k),  // knee
+    lp(-8, 8,  -22,18, k),  // paw
+    4.5, C1
+  );
+  // Far FRONT leg: folded = knee forward-up, paw tucked under chest
+  //                kicked = knee forward-down, paw pushed out front
+  limb(
+    7, 4,
+    lp(14,-2, 18,10, k),
+    lp(11, 8, 28,18, k),
+    4.5, C1
+  );
 
-  // ── Body — round, stocky lab torso ───────────────────────────────────────
+  // ── Body ──────────────────────────────────────────────────────────────────
   ctx.beginPath(); ctx.ellipse(0,2,14,10,0,0,Math.PI*2);
   const bg=ctx.createRadialGradient(-3,-3,1,0,2,15);
   bg.addColorStop(0,C5); bg.addColorStop(0.4,C4); bg.addColorStop(0.75,C3); bg.addColorStop(1,C1);
   ctx.fillStyle=bg; ctx.fill();
 
-  // ── Wagging tail ──────────────────────────────────────────────────────────
-  const tw=Math.sin(T/130)*10;
+  // ── Tail — tapered stroke, no blob ───────────────────────────────────────
+  const tw=Math.sin(T/140)*9;
   ctx.save(); ctx.translate(-13,0);
-  ctx.beginPath(); ctx.moveTo(0,0);
-  ctx.bezierCurveTo(-5,-5,-10,-12+tw,-8,-18+tw);
-  ctx.strokeStyle=C3; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
-  ctx.beginPath(); ctx.arc(-8,-18+tw,4.5,0,Math.PI*2);
-  ctx.fillStyle=C4; ctx.fill();
+  // thick base fading to thin tip via layered strokes
+  ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(0,1); ctx.bezierCurveTo(-3,-5,-8,-13+tw,-6,-19+tw);
+  ctx.strokeStyle=C3; ctx.lineWidth=5; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3,-7+tw*0.4); ctx.bezierCurveTo(-5,-12+tw*0.7,-7,-17+tw,-6,-19+tw);
+  ctx.strokeStyle=C4; ctx.lineWidth=2.5; ctx.stroke();
   ctx.restore();
 
-  // ── Near (front) legs — drawn in front of body ────────────────────────────
-  // near back leg: slightly in front of far one, slightly lighter
-  drawLeg(-5,6, -9,16, -16,22, 5.5, C3);
-  // near front leg
-  drawLeg(10,5, 18,15, 26,21, 5.5, C3);
+  // ── Near legs (in front of body, slightly lighter) ─────────────────────────
+  // Near BACK leg
+  limb(
+    -4, 5,
+    lp(-9,-1, -14,12, k),
+    lp(-7, 9, -20,20, k),
+    5, C3
+  );
+  // Near FRONT leg
+  limb(
+    9, 5,
+    lp(16,-1, 20,12, k),
+    lp(12, 9, 30,20, k),
+    5, C3
+  );
 
   // ── Neck ──────────────────────────────────────────────────────────────────
   ctx.beginPath();
@@ -576,30 +600,27 @@ function drawBird() {
   ng.addColorStop(0,C5); ng.addColorStop(1,C2);
   ctx.fillStyle=ng; ctx.fill();
 
-  // ── Head — big, round, broad lab skull ───────────────────────────────────
+  // ── Head ──────────────────────────────────────────────────────────────────
   ctx.beginPath(); ctx.ellipse(15,-8,14,12,0,0,Math.PI*2);
   const hg=ctx.createRadialGradient(10,-14,2,15,-8,15);
   hg.addColorStop(0,C5); hg.addColorStop(0.35,C4); hg.addColorStop(0.7,C3); hg.addColorStop(1,C1);
   ctx.fillStyle=hg; ctx.fill();
 
-  // ── Ears — upright & alert, not floppy (like the ref photo) ──────────────
-  // far ear (behind head, darker)
+  // ── Ears — upright, alert ─────────────────────────────────────────────────
   ctx.save(); ctx.translate(10,-16);
   ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-3,-11); ctx.lineTo(5,-9); ctx.closePath();
   ctx.fillStyle=C1; ctx.fill();
   ctx.restore();
-  // near ear (forward, with inner pink)
-  const ef=Math.sin(T/250)*1.2;
   ctx.save(); ctx.translate(19,-17);
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-1,-13+ef); ctx.lineTo(7,-10); ctx.closePath();
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-1,-13); ctx.lineTo(7,-10); ctx.closePath();
   const earG=ctx.createLinearGradient(0,0,3,-13);
   earG.addColorStop(0,C2); earG.addColorStop(1,C4);
   ctx.fillStyle=earG; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,-9+ef); ctx.lineTo(5,-8); ctx.closePath();
-  ctx.fillStyle='rgba(190,90,70,0.38)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,-9); ctx.lineTo(5,-8); ctx.closePath();
+  ctx.fillStyle='rgba(190,80,60,0.35)'; ctx.fill();
   ctx.restore();
 
-  // ── Muzzle — wide, squared-off lab snout ─────────────────────────────────
+  // ── Muzzle ────────────────────────────────────────────────────────────────
   ctx.beginPath();
   ctx.moveTo(20,-1); ctx.bezierCurveTo(28,-4,36,-1,37,4);
   ctx.bezierCurveTo(37,10,34,13,28,13); ctx.lineTo(19,13);
@@ -608,23 +629,14 @@ function drawBird() {
   const mg=ctx.createRadialGradient(22,-1,1,26,6,13);
   mg.addColorStop(0,C4); mg.addColorStop(1,C2);
   ctx.fillStyle=mg; ctx.fill();
-  // top ridge
   ctx.beginPath(); ctx.ellipse(25,-2,9,3.5,0.1,0,Math.PI*2);
   ctx.fillStyle=C4; ctx.fill();
 
-  // ── Nose ─────────────────────────────────────────────────────────────────
+  // ── Nose ──────────────────────────────────────────────────────────────────
   ctx.beginPath(); ctx.ellipse(34,2,4.2,3.5,0,0,Math.PI*2);
   ctx.fillStyle=NOSE; ctx.fill();
   ctx.beginPath(); ctx.ellipse(32.5,0.8,1.3,0.8,-0.3,0,Math.PI*2);
   ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fill();
-
-  // ── Collar + tag ──────────────────────────────────────────────────────────
-  ctx.beginPath(); ctx.moveTo(10,4); ctx.bezierCurveTo(13,-1,21,-2,22,3);
-  ctx.strokeStyle='#5c1a1a'; ctx.lineWidth=4; ctx.lineCap='butt'; ctx.stroke();
-  ctx.beginPath(); ctx.arc(16,3.5,3,0,Math.PI*2);
-  ctx.fillStyle='#c8a820'; ctx.fill();
-  ctx.beginPath(); ctx.arc(16,3.5,1,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,240,100,0.5)'; ctx.fill();
 
   // ── Mouth ────────────────────────────────────────────────────────────────
   ctx.beginPath(); ctx.moveTo(20,11); ctx.quadraticCurveTo(27,15,34,10);
@@ -655,7 +667,6 @@ function drawBird() {
   ctx.beginPath(); ctx.arc(17.5,-11,2.4,0,Math.PI*2); ctx.fillStyle='#050203'; ctx.fill();
   ctx.beginPath(); ctx.arc(15.8,-12.5,1.4,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.fill();
   ctx.beginPath(); ctx.arc(18.5,-10.2,0.7,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
-  // brow
   ctx.beginPath(); ctx.moveTo(10,-15); ctx.quadraticCurveTo(16,-18,23,-14);
   ctx.strokeStyle=C1; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.stroke();
   if(blinking){
@@ -666,7 +677,7 @@ function drawBird() {
   // ── Jump glow ─────────────────────────────────────────────────────────────
   if(bird.jumpGlow>0){
     const gr=ctx.createRadialGradient(0,0,12,0,0,34);
-    gr.addColorStop(0,`rgba(180,90,30,${bird.jumpGlow*0.32})`);
+    gr.addColorStop(0,`rgba(180,90,30,${bird.jumpGlow*0.28})`);
     gr.addColorStop(1,'rgba(180,90,30,0)');
     ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(0,0,34,0,Math.PI*2); ctx.fill();
   }
