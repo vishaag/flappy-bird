@@ -127,7 +127,7 @@ const STARS = Array.from({length:72}, () => ({
 }));
 
 // ─── Game constants ───────────────────────────────────────────────────────────
-const GRAVITY=1700, JUMP_VEL=-510, TERM_VEL=680;
+const GRAVITY=580, JUMP_VEL=-360, TERM_VEL=420, DRAG=1.8;
 const PIPE_SPEED=172, PIPE_GAP=162, PIPE_W=62, PIPE_CAP_H=26, PIPE_CAP_EXTRA=8;
 const GROUND_H=78, BIRD_X=110, SPAWN_INTERVAL=1.85;
 const BULLET_SPEED=700, PIPES_PER_BULLET=5, START_BULLETS=3;
@@ -151,7 +151,7 @@ let blinkTimer=2+Math.random()*3, blinking=false, blinkDur=0;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
-  bird={y:H/2-40,vy:0,rot:0,wing:0,jumpGlow:0};
+  bird={y:H/2-40,vy:0,rot:0,wing:0,jumpGlow:0,flapBoost:0};
   pipes=[]; particles=[]; enemies=[]; bullets=[]; floaters=[];
   groundOff=0; pipeTimer=SPAWN_INTERVAL*0.55; enemyTimer=4;
   deathTimer=0; shake=0; score=0; newBest=false; scorePop=0;
@@ -162,8 +162,8 @@ function init() {
 // ─── Input ────────────────────────────────────────────────────────────────────
 function onJump() {
   if (AC.state==='suspended') AC.resume();
-  if (mode==='start') { mode='playing'; bird.vy=JUMP_VEL; bird.jumpGlow=1; playJump(); }
-  else if (mode==='playing') { bird.vy=JUMP_VEL; bird.jumpGlow=1; playJump(); playWing(); }
+  if (mode==='start') { mode='playing'; bird.vy=Math.min(bird.vy,JUMP_VEL); bird.flapBoost=0.18; bird.jumpGlow=1; playJump(); }
+  else if (mode==='playing') { bird.vy=Math.min(bird.vy,JUMP_VEL); bird.flapBoost=0.18; bird.jumpGlow=1; playJump(); playWing(); }
   else if (mode==='dead' && deathTimer>0.55) { init(); mode='start'; }
 }
 function shoot() {
@@ -304,10 +304,15 @@ function update(dt) {
   }
 
   // ── PLAYING ──
-  bird.vy=Math.min(bird.vy+GRAVITY*dt,TERM_VEL); bird.y+=bird.vy*dt;
-  bird.jumpGlow=Math.max(0,bird.jumpGlow-dt*3.5);
-  const targetRot=clamp(bird.vy/TERM_VEL,-1,1)*(Math.PI*0.44);
-  bird.rot+=(targetRot-bird.rot)*Math.min(1,dt*10);
+  // Glide physics: gravity + air drag + brief sustained flap boost
+  if(bird.flapBoost>0) { bird.vy-=900*dt; bird.flapBoost=Math.max(0,bird.flapBoost-dt); }
+  bird.vy+=GRAVITY*dt;
+  if(bird.vy>0) bird.vy-=DRAG*bird.vy*dt;  // drag cushions the fall
+  bird.vy=Math.min(bird.vy,TERM_VEL);
+  bird.y+=bird.vy*dt;
+  bird.jumpGlow=Math.max(0,bird.jumpGlow-dt*2.5);
+  const targetRot=clamp(bird.vy/TERM_VEL,-1,1)*(Math.PI*0.22);  // shallow tilt
+  bird.rot+=(targetRot-bird.rot)*Math.min(1,dt*6);
   bird.wing+=(8+Math.max(0,-bird.vy)*0.012)*dt;
 
   pipeTimer-=dt;
